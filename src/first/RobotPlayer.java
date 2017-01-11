@@ -1,72 +1,43 @@
 package first;
 import battlecode.common.*;
 
-public strictfp class RobotPlayer {
+public strictfp class RobotPlayer extends Globals {
     static RobotController rc;
 
     /**
      * run() is the method that is called when a robot is instantiated in the Battlecode world.
      * If this method returns, the robot dies!
     **/
-    @SuppressWarnings("unused")
-    public static void run(RobotController rc) throws GameActionException {
-
-        // This is the RobotController object. You use it to perform actions from this robot,
-        // and to get information on its current status.
-        RobotPlayer.rc = rc;
+    public static void run(RobotController theRC) throws GameActionException {
+    	Globals.init(theRC);
 
         // Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
         switch (rc.getType()) {
             case ARCHON:
-                runArchon();
+            	Archon.loop();
                 break;
             case GARDENER:
+            	Gardener.loop();
                 runGardener();
                 break;
             case SOLDIER:
+            	Soldier.loop();
                 runSoldier();
                 break;
             case LUMBERJACK:
+            	Lumberjack.loop();
                 runLumberjack();
                 break;
+            case TANK:
+            	Tank.loop();
+            	break;
+            case SCOUT: 
+            	Scout.loop();
+            	break;
         }
 	}
 
-    static void runArchon() throws GameActionException {
-        System.out.println("I'm an archon!");
-
-        // The code you want your robot to perform every round should be in this loop
-        while (true) {
-
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
-            try {
-
-                // Generate a random direction
-                Direction dir = randomDirection();
-
-                // Randomly attempt to build a gardener in this direction
-                if (rc.canHireGardener(dir) && Math.random() < .01) {
-                    rc.hireGardener(dir);
-                }
-
-                // Move randomly
-                tryMove(randomDirection());
-
-                // Broadcast archon's location for other robots on the team to know
-                MapLocation myLocation = rc.getLocation();
-                rc.broadcast(0,(int)myLocation.x);
-                rc.broadcast(1,(int)myLocation.y);
-
-                // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-                Clock.yield();
-
-            } catch (Exception e) {
-                System.out.println("Archon Exception");
-                e.printStackTrace();
-            }
-        }
-    }
 
 	static void runGardener() throws GameActionException {
         System.out.println("I'm a gardener!");
@@ -83,7 +54,7 @@ public strictfp class RobotPlayer {
                 MapLocation archonLoc = new MapLocation(xPos,yPos);
 
                 // Generate a random direction
-                Direction dir = randomDirection();
+                Direction dir = Nav.randomDirection();
 
                 // Randomly attempt to build a soldier or lumberjack in this direction
                 if (rc.canBuildRobot(RobotType.SOLDIER, dir) && Math.random() < .01) {
@@ -93,7 +64,7 @@ public strictfp class RobotPlayer {
                 }
 
                 // Move randomly
-                tryMove(randomDirection());
+                Nav.tryMove(Nav.randomDirection());
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
@@ -129,7 +100,7 @@ public strictfp class RobotPlayer {
                 }
 
                 // Move randomly
-                tryMove(randomDirection());
+                Nav.tryMove(Nav.randomDirection());
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
@@ -167,10 +138,10 @@ public strictfp class RobotPlayer {
                         MapLocation enemyLocation = robots[0].getLocation();
                         Direction toEnemy = myLocation.directionTo(enemyLocation);
 
-                        tryMove(toEnemy);
+                        Nav.tryMove(toEnemy);
                     } else {
                         // Move Randomly
-                        tryMove(randomDirection());
+                        Nav.tryMove(Nav.randomDirection());
                     }
                 }
 
@@ -184,64 +155,6 @@ public strictfp class RobotPlayer {
         }
     }
 
-    /**
-     * Returns a random Direction
-     * @return a random Direction
-     */
-    static Direction randomDirection() {
-        return new Direction((float)Math.random() * 2 * (float)Math.PI);
-    }
-
-    /**
-     * Attempts to move in a given direction, while avoiding small obstacles directly in the path.
-     *
-     * @param dir The intended direction of movement
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir) throws GameActionException {
-        return tryMove(dir,20,3);
-    }
-
-    /**
-     * Attempts to move in a given direction, while avoiding small obstacles direction in the path.
-     *
-     * @param dir The intended direction of movement
-     * @param degreeOffset Spacing between checked directions (degrees)
-     * @param checksPerSide Number of extra directions checked on each side, if intended direction was unavailable
-     * @return true if a move was performed
-     * @throws GameActionException
-     */
-    static boolean tryMove(Direction dir, float degreeOffset, int checksPerSide) throws GameActionException {
-
-        // First, try intended direction
-        if (rc.canMove(dir)) {
-            rc.move(dir);
-            return true;
-        }
-
-        // Now try a bunch of similar angles
-        boolean moved = false;
-        int currentCheck = 1;
-
-        while(currentCheck<=checksPerSide) {
-            // Try the offset of the left side
-            if(rc.canMove(dir.rotateLeftDegrees(degreeOffset*currentCheck))) {
-                rc.move(dir.rotateLeftDegrees(degreeOffset*currentCheck));
-                return true;
-            }
-            // Try the offset on the right side
-            if(rc.canMove(dir.rotateRightDegrees(degreeOffset*currentCheck))) {
-                rc.move(dir.rotateRightDegrees(degreeOffset*currentCheck));
-                return true;
-            }
-            // No move performed, try slightly further
-            currentCheck++;
-        }
-
-        // A move never happened, so return false.
-        return false;
-    }
 
     /**
      * A slightly more complicated example function, this returns true if the given bullet is on a collision
